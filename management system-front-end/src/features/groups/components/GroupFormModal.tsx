@@ -80,6 +80,7 @@ export const GroupFormModal: React.FC<GroupFormModalProps> = ({
               onChange={(e) => onLevelChange(e.target.value as AcademicLevel)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-[#367ab8] focus:ring-4 focus:ring-[#367ab8]/20 transition-all"
             >
+              <option value="prep_third">الصف الثالث الإعدادي</option>
               <option value="first">الصف الأول الثانوي</option>
               <option value="second">الصف الثاني الثانوي</option>
               <option value="third">الصف الثالث الثانوي</option>

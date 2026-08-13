@@ -28,6 +28,15 @@ export const GroupFilterBar: React.FC<GroupFilterBarProps> = ({
           كل المراحل
         </button>
         <button
+          onClick={() => onLevelChange("prep_third")}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${activeLevel === "prep_third"
+              ? "bg-[#367ab8] text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
+            }`}
+        >
+          الثالث الإعدادي
+        </button>
+        <button
           onClick={() => onLevelChange("first")}
           className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${activeLevel === "first"
               ? "bg-[#367ab8] text-white shadow-sm"

@@ -9,6 +9,7 @@ interface GroupHeaderCardProps {
 }
 
 const LEVEL_LABELS: Record<AcademicLevel, string> = {
+  prep_third: "الصف الثالث الإعدادي",
   first: "الصف الأول الثانوي",
   second: "الصف الثاني الثانوي",
   third: "الصف الثالث الثانوي",

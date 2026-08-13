@@ -19,6 +19,16 @@ export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [cardsData, setCardsData] = useState<Record<AcademicLevel, SecondaryLevelCard>>({
+    prep_third: {
+      level: "prep_third",
+      number: 3,
+      title: "الصف الثالث الإعدادي",
+      badgeBg: "bg-emerald-50 text-emerald-700",
+      groupsCount: 0,
+      studentsCount: 0,
+      isLoading: true,
+      error: null,
+    },
     first: {
       level: "first",
       number: 1,
@@ -55,7 +65,7 @@ export const DashboardPage: React.FC = () => {
     let isMounted = true;
 
     const fetchLevelData = async () => {
-      const levels: AcademicLevel[] = ["first", "second", "third"];
+      const levels: AcademicLevel[] = ["prep_third", "first", "second", "third"];
 
       const promises = levels.map(async (lvl) => {
         try {
@@ -133,7 +143,7 @@ export const DashboardPage: React.FC = () => {
 
 
       <div className="space-y-4">
-        {(["first", "second", "third"] as AcademicLevel[]).map((levelKey) => {
+        {(["prep_third", "first", "second", "third"] as AcademicLevel[]).map((levelKey) => {
           const item = cardsData[levelKey];
 
           return (

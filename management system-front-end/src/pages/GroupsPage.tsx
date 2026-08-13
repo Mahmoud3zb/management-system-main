@@ -11,12 +11,14 @@ import type { Group, AcademicLevel } from "../types";
 import type { ApiErrorResponse } from "../services/apiClient";
 
 const LEVEL_LABELS: Record<AcademicLevel, string> = {
+  prep_third: "الصف الثالث الإعدادي",
   first: "الصف الأول الثانوي",
   second: "الصف الثاني الثانوي",
   third: "الصف الثالث الثانوي",
 };
 
 const LEVEL_BADGE_STYLES: Record<AcademicLevel, string> = {
+  prep_third: "bg-emerald-50 text-emerald-700 border-emerald-200",
   first: "bg-blue-50 text-blue-700 border-blue-200",
   second: "bg-indigo-50 text-indigo-700 border-indigo-200",
   third: "bg-amber-50 text-amber-700 border-amber-200",
@@ -29,7 +31,7 @@ export const GroupsPage: React.FC = () => {
 
   const currentLevelParam = searchParams.get("level") as AcademicLevel | null;
   const activeLevelFilter: AcademicLevel | "all" =
-    currentLevelParam && ["first", "second", "third"].includes(currentLevelParam)
+    currentLevelParam && ["prep_third", "first", "second", "third"].includes(currentLevelParam)
       ? currentLevelParam
       : "all";
 
@@ -248,6 +250,15 @@ export const GroupsPage: React.FC = () => {
               }`}
           >
             كل المراحل
+          </button>
+          <button
+            onClick={() => handleLevelTabChange("prep_third")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${activeLevelFilter === "prep_third"
+              ? "bg-[#367ab8] text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
+              }`}
+          >
+            الثالث الإعدادي
           </button>
           <button
             onClick={() => handleLevelTabChange("first")}
@@ -487,6 +498,7 @@ export const GroupsPage: React.FC = () => {
                   onChange={(e) => setFormLevel(e.target.value as AcademicLevel)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-[#367ab8] focus:ring-4 focus:ring-[#367ab8]/20 transition-all"
                 >
+                  <option value="prep_third">الصف الثالث الإعدادي</option>
                   <option value="first">الصف الأول الثانوي</option>
                   <option value="second">الصف الثاني الثانوي</option>
                   <option value="third">الصف الثالث الثانوي</option>

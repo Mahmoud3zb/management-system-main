@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
 
 export enum Level {
-    FIRST="first",
-    SECOND="second",
-    THIRD="third"
+    PREP_THIRD = "prep_third",
+    FIRST = "first",
+    SECOND = "second",
+    THIRD = "third"
 }
 
 interface IGroup extends mongoose.Document {

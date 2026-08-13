@@ -1,6 +1,6 @@
 export type Role = "admin" | "teacher" | "student";
 export type UserRole = Role;
-export type AcademicLevel = "first" | "second" | "third";
+export type AcademicLevel = "prep_third" | "first" | "second" | "third";
 
 export interface User {
   _id: string;
