@@ -1,0 +1,70 @@
+# ============================
+# Node.js / Express / TypeScript
+# ============================
+
+# Node modules
+node_modules/
+
+# Build output
+dist/
+build/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.swp
+
+# Coverage
+coverage/
+
+# Git merge messages
+.git/MERGE_MSG
+.git/*.swp
+
+# Uploads (optional — لو انت بتخزن صور على السيرفر)
+uploads/
+public/uploads/
+
+# Runtime
+.pnp*
+.pnp.js
+
+# Optional lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment for docker, if used
+docker.env
+
+# Cache
+.cache/
+.tmp/
+
+# Misc
+*.bak
