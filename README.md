@@ -88,24 +88,7 @@ management-system/
 
 ---
 
-## ⚙️ Environment Variables | متغيرات البيئة
 
-### **Back-End (`management system-back-end/.env`)**:
-```env
-PORT=3000
-SECRET_KEY=str0ngS3cr3t
-DB_URL=mongodb+srv://<username>:<password>@cluster0.7yxn39q.mongodb.net
-DB_NAME=management_system
-FRONTEND_URL=http://localhost:5173
-NODE_ENV=development
-```
-
-### **Front-End (`management system-front-end/.env`)**:
-```env
-VITE_API_BASE_URL=http://localhost:3000
-```
-
----
 
 ## 🚦 Getting Started | كيفية التشغيل محلياً
 
