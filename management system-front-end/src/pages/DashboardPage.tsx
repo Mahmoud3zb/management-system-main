@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FileText } from "lucide-react";
 import { getGroupsApi, getGroupStudentsApi } from "../features/groups/api";
 import { ROUTES } from "../routes/paths";
 import type { AcademicLevel } from "../types";
@@ -73,7 +74,6 @@ export const DashboardPage: React.FC = () => {
           const groupsList = groupsRes.data || [];
           const groupsCount = groupsRes.total || groupsList.length;
 
-
           let studentsCount = 0;
           if (groupsList.length > 0) {
             const studentCounts = await Promise.allSettled(
@@ -131,16 +131,22 @@ export const DashboardPage: React.FC = () => {
     navigate(`${ROUTES.GROUPS}?level=${level}`);
   };
 
+  const handleOpenReport = (e: React.MouseEvent, level: AcademicLevel) => {
+    e.stopPropagation();
+    navigate(`/reports/level/${level}`);
+  };
+
   return (
-    <div className="max-w-xl mx-auto space-y-6 py-2 text-right" dir="rtl">
+    <div className="max-w-2xl mx-auto space-y-6 py-2 text-right" dir="rtl">
 
-      <div className="flex items-center gap-2 mb-6">
-        <span className="w-1.5 h-6 bg-amber-400 rounded-full"></span>
-        <h2 className="text-xl font-extrabold text-[#367ab8] tracking-tight">
-          الصفوف الدراسية
-        </h2>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-6 bg-amber-400 rounded-full"></span>
+          <h2 className="text-xl font-extrabold text-[#367ab8] tracking-tight">
+            الصفوف الدراسية
+          </h2>
+        </div>
       </div>
-
 
       <div className="space-y-4">
         {(["prep_third", "first", "second", "third"] as AcademicLevel[]).map((levelKey) => {
@@ -150,30 +156,39 @@ export const DashboardPage: React.FC = () => {
             <div
               key={levelKey}
               onClick={() => handleCardClick(levelKey)}
-              className="bg-white border border-slate-100/80 rounded-2xl p-7 shadow-xs hover:shadow-md transition-all flex flex-col items-center justify-center text-center cursor-pointer group hover:border-[#367ab8]/30"
+              className="bg-white border border-slate-100/80 rounded-2xl p-6 shadow-xs hover:shadow-md transition-all flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer group hover:border-[#367ab8]/30"
             >
+              <div className="flex items-center gap-4 text-right w-full sm:w-auto">
+                <div
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center font-extrabold text-base shrink-0 shadow-xs group-hover:scale-105 transition-transform ${item.badgeBg}`}
+                >
+                  <span className="bg-[#367ab8] text-white w-6 h-6 rounded-md flex items-center justify-center text-xs shadow-xs">
+                    {item.number}
+                  </span>
+                </div>
 
-              <div
-                className={`w-11 h-11 rounded-xl flex items-center justify-center font-extrabold text-base mb-3 shadow-xs group-hover:scale-105 transition-transform ${item.badgeBg}`}
-              >
-                <span className="bg-[#367ab8] text-white w-6 h-6 rounded-md flex items-center justify-center text-xs shadow-xs">
-                  {item.number}
-                </span>
+                <div>
+                  <h3 className="text-lg font-black text-slate-800 group-hover:text-[#367ab8] transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs font-semibold text-slate-400 mt-1">
+                    {item.isLoading ? (
+                      <span className="animate-pulse">جاري التحميل...</span>
+                    ) : (
+                      `${item.groupsCount} مجموعات | ${item.studentsCount} طالب`
+                    )}
+                  </p>
+                </div>
               </div>
 
-
-              <h3 className="text-lg font-black text-slate-800 group-hover:text-[#367ab8] transition-colors">
-                {item.title}
-              </h3>
-
-
-              <p className="text-xs font-semibold text-slate-400 mt-1.5">
-                {item.isLoading ? (
-                  <span className="animate-pulse">جاري التحميل...</span>
-                ) : (
-                  `${item.groupsCount} مجموعات | ${item.studentsCount} طالب`
-                )}
-              </p>
+              {/* Comprehensive Report Page Navigation Button */}
+              <button
+                onClick={(e) => handleOpenReport(e, item.level)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#367ab8] hover:bg-[#2c6599] text-white px-4 py-2.5 rounded-xl font-extrabold text-xs transition-all active:scale-95 shrink-0 shadow-md hover:shadow-lg"
+              >
+                <FileText className="w-4 h-4" />
+                <span>تقرير شامل</span>
+              </button>
             </div>
           );
         })}

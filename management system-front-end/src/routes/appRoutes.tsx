@@ -13,6 +13,7 @@ import { AttendanceDetailsPage } from "../pages/AttendanceDetailsPage";
 import { ExamsPage } from "../pages/ExamsPage";
 import { ExamDetailsPage } from "../pages/ExamDetailsPage";
 import { PaymentsPage } from "../pages/PaymentsPage";
+import { LevelReportPage } from "../pages/LevelReportPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 
 export const AppRoutes: React.FC = () => {
@@ -39,6 +40,7 @@ export const AppRoutes: React.FC = () => {
           <Route path={ROUTES.EXAMS} element={<ExamsPage />} />
           <Route path={ROUTES.EXAM_DETAILS} element={<ExamDetailsPage />} />
           <Route path={ROUTES.PAYMENTS} element={<PaymentsPage />} />
+          <Route path={ROUTES.REPORTS_LEVEL} element={<LevelReportPage />} />
         </Route>
       </Route>
 
