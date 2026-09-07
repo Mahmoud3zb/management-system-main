@@ -320,7 +320,7 @@ export const LevelReportPage: React.FC = () => {
 
                       {/* Payments */}
                       <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex flex-col items-center justify-center">
-                        <span className="text-[11px] font-bold text-slate-400 mb-1">الـدغـفـع</span>
+                        <span className="text-[11px] font-bold text-slate-400 mb-1">الـدفـع</span>
                         <span className="bg-blue-50 text-[#367ab8] border border-blue-200/60 px-2 py-0.5 rounded-full text-xs font-black">
                           {student.payments.paidMonthsCount} أشهر
                         </span>

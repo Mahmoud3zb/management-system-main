@@ -1,7 +1,7 @@
 import { getGroupsApi, getGroupStudentsApi } from "../groups/api";
 import { getGroupAttendanceApi } from "../attendance/api";
 import { getGroupExamsApi } from "../exams/api";
-import { getGroupPaymentsApi } from "../payments/api";
+import { getGroupPaymentsApi, getPaymentByIdApi } from "../payments/api";
 import type { AcademicLevel } from "../../types";
 import type {
   LevelReportResponseData,
@@ -9,6 +9,19 @@ import type {
   StudentExamResult,
   StudentPaymentRecord,
 } from "./types";
+
+/**
+ * Helper to safely extract string ID from populated object or string ID
+ */
+const getEntityId = (entity: any): string => {
+  if (!entity) return "";
+  if (typeof entity === "string") return entity;
+  if (typeof entity === "object") {
+    if (entity._id) return entity._id.toString();
+    if (entity.id) return entity.id.toString();
+  }
+  return entity.toString();
+};
 
 /**
  * Frontend-only aggregation of Level Report using existing backend endpoints
@@ -51,7 +64,20 @@ export const getLevelReportApi = async (
     const students = studentsRes.status === "fulfilled" && Array.isArray(studentsRes.value.data) ? studentsRes.value.data : [];
     const attendanceSheets = attendanceRes.status === "fulfilled" && Array.isArray(attendanceRes.value.data) ? attendanceRes.value.data : [];
     const exams = examsRes.status === "fulfilled" && Array.isArray(examsRes.value.data) ? examsRes.value.data : [];
-    const payments = paymentsRes.status === "fulfilled" && Array.isArray(paymentsRes.value.data) ? paymentsRes.value.data : [];
+    const paymentHeaders = paymentsRes.status === "fulfilled" && Array.isArray(paymentsRes.value.data) ? paymentsRes.value.data : [];
+
+    // Backend /api/payment/group/:groupID uses .select("-paidList").
+    // To get paidList for each month sheet, we fetch details using getPaymentByIdApi.
+    const payments = await Promise.all(
+      paymentHeaders.map(async (pHeader) => {
+        try {
+          const detailRes = await getPaymentByIdApi(pHeader._id);
+          return detailRes.data || pHeader;
+        } catch (err) {
+          return pHeader;
+        }
+      })
+    );
 
     return {
       groupId,
@@ -83,12 +109,12 @@ export const getLevelReportApi = async (
     const totalGroupSessions = group.attendanceSheets.length;
 
     group.students.forEach((student) => {
-      const studentId = student._id;
+      const studentId = student._id.toString();
 
       // Attendance
       let attendedSessions = 0;
       group.attendanceSheets.forEach((sheet) => {
-        const item = (sheet.present || []).find((p) => (p.studentID as any) === studentId || (p.studentID as any)?._id === studentId);
+        const item = (sheet.present || []).find((p: any) => getEntityId(p.studentID) === studentId);
         if (item?.isPresent) {
           attendedSessions += 1;
         }
@@ -109,7 +135,7 @@ export const getLevelReportApi = async (
 
       group.exams.forEach((ex) => {
         if (ex.isDeleted) return;
-        const studentResult = ex.results?.find((r) => (r.studentID as any) === studentId || (r.studentID as any)?._id === studentId);
+        const studentResult = (ex.results || []).find((r: any) => getEntityId(r.studentID) === studentId);
         if (studentResult) {
           examsCount += 1;
           totalStudentMarks += studentResult.marks || 0;
@@ -134,8 +160,9 @@ export const getLevelReportApi = async (
       // Payments
       const paidMonthsList: StudentPaymentRecord[] = [];
       group.payments.forEach((pay) => {
-        const paidItem = pay.paidList?.find((p) => (p.studentID as any) === studentId || (p.studentID as any)?._id === studentId);
-        if (paidItem) {
+        const paidItem = (pay.paidList || []).find((p: any) => getEntityId(p.studentID) === studentId);
+        const isPaid = paidItem && (paidItem.isPaid === true || (paidItem.isPaid !== false && paidItem.paidAt && paidItem.paidAt !== "-"));
+        if (isPaid) {
           paidMonthsList.push({
             month: pay.month,
             paidAt: paidItem.paidAt,
