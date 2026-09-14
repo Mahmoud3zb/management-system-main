@@ -158,8 +158,8 @@ export const EditExamModal: React.FC<EditExamModalProps> = ({
               <input
                 id="editMaxMarks"
                 type="number"
-                min="1"
-                step="1"
+                min="0.1"
+                step="any"
                 required
                 disabled={isSubmitting}
                 value={maxMarks}

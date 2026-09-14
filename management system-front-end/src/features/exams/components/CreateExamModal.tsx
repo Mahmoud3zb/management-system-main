@@ -264,8 +264,8 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({
               <input
                 id="maxMarks"
                 type="number"
-                min="1"
-                step="1"
+                min="0.1"
+                step="any"
                 required
                 disabled={isSubmitting}
                 value={maxMarks}

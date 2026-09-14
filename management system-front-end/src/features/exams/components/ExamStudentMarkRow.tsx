@@ -51,7 +51,7 @@ export const ExamStudentMarkRow: React.FC<ExamStudentMarkRowProps> = ({
             type="number"
             min="0"
             max={maxMarks}
-            step="0.5"
+            step="any"
             disabled={disabled}
             value={markValue}
             onChange={(e) => onMarkChange(student._id, e.target.value)}

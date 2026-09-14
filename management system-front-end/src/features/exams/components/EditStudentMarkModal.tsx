@@ -149,7 +149,7 @@ export const EditStudentMarkModal: React.FC<EditStudentMarkModalProps> = ({
               type="number"
               min="0"
               max={maxMarks}
-              step="0.5"
+              step="any"
               required
               disabled={isSubmitting}
               value={markInput}
