@@ -10,3 +10,4 @@ export * from "./ExamResultsTable";
 export * from "./EditExamModal";
 export * from "./EditStudentMarkModal";
 export * from "./ArchiveExamModal";
+export * from "./ExamGradingModal";

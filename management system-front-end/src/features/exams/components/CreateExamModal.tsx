@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { getGroupStudentsApi } from "../../groups/api";
 import { createExamApi } from "../api";
 import { ExamStudentMarkRow } from "./ExamStudentMarkRow";
@@ -32,6 +32,7 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({
   const [date, setDate] = useState(getTodayFormattedDate());
   const [maxMarks, setMaxMarks] = useState<string>("100");
   const [marksMap, setMarksMap] = useState<Record<string, string>>({});
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   const [students, setStudents] = useState<User[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
@@ -50,6 +51,7 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({
     setDate(getTodayFormattedDate());
     setMaxMarks("100");
     setMarksMap({});
+    setSearchTerm("");
 
     const fetchStudents = async () => {
       try {
@@ -81,6 +83,18 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({
     };
   }, [isOpen, groupId]);
 
+  // Quick Search Filter logic
+  const filteredStudents = useMemo<User[]>(() => {
+    if (!searchTerm.trim()) return students;
+    const term = searchTerm.trim().toLowerCase();
+    return students.filter(
+      (s) =>
+        s.name.toLowerCase().includes(term) ||
+        (s.phone && s.phone.includes(term)) ||
+        (s.parentPhone && s.parentPhone.includes(term))
+    );
+  }, [students, searchTerm]);
+
   if (!isOpen) return null;
 
   const handleMarkChange = (studentId: string, val: string) => {
@@ -92,10 +106,10 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({
 
   const handleSetAllMarks = (value: string) => {
     const updated: Record<string, string> = {};
-    students.forEach((s) => {
+    filteredStudents.forEach((s) => {
       updated[s._id] = value;
     });
-    setMarksMap(updated);
+    setMarksMap((prev) => ({ ...prev, ...updated }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -278,19 +292,46 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({
 
 
           {!isLoadingStudents && students.length > 0 && (
-            <div className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5">
-              <span className="text-[11px] font-bold text-slate-600 mr-1">
-                درجات الطلاب ({students.length})
-              </span>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 border border-slate-200/80 rounded-2xl p-2.5">
+              
+              {/* Quick Search Input */}
+              <div className="relative w-full sm:w-64">
+                <svg
+                  className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="ابحث باسم الطالب..."
+                  className="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#e1b54d] focus:ring-2 focus:ring-[#e1b54d]/20 transition-all"
+                />
+              </div>
 
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleSetAllMarks(maxMarks)}
-                className="text-[11px] font-bold text-amber-700 hover:bg-amber-100 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-              >
-                تحديد الدرجة النهائية للكل
-              </button>
+              <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+                <span className="text-[11px] font-bold text-slate-600">
+                  درجات الطلاب ({filteredStudents.length} / {students.length})
+                </span>
+
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => handleSetAllMarks(maxMarks)}
+                  className="text-[11px] font-bold text-amber-700 hover:bg-amber-100 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0"
+                >
+                  الدرجة النهائية للكل
+                </button>
+              </div>
             </div>
           )}
 
@@ -301,16 +342,15 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({
                 <div key={idx} className="h-12 bg-slate-100 rounded-2xl animate-pulse w-full"></div>
               ))}
             </div>
-          ) : students.length === 0 ? (
+          ) : filteredStudents.length === 0 ? (
             <div className="p-8 border border-slate-200 border-dashed rounded-2xl text-center">
-              <p className="text-xs font-extrabold text-slate-600">لا يوجد طلاب في هذه المجموعة</p>
-              <p className="text-[11px] font-medium text-slate-400 mt-1">
-                قم بإضافة طلاب أولاً لإمكانية رصد درجات الامتحان.
+              <p className="text-xs font-extrabold text-slate-600">
+                {searchTerm ? "لا يوجد طلاب مطابقين للبحث" : "لا يوجد طلاب في هذه المجموعة"}
               </p>
             </div>
           ) : (
             <div className="max-h-64 overflow-y-auto space-y-2 pr-1 pl-1 scrollbar-thin">
-              {students.map((student, idx) => (
+              {filteredStudents.map((student, idx) => (
                 <ExamStudentMarkRow
                   key={student._id}
                   student={student}
