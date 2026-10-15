@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { getGroupStudentsApi } from "../../groups/api";
 import { recordPaymentApi, getPaymentByIdApi } from "../api";
 import { getStudentId, isPaymentRecordPaid } from "../utils";
 import { PaymentStudentRow } from "./PaymentStudentRow";
 import type { User, Payment, RecordPaymentPayload } from "../../../types";
 import type { ApiErrorResponse } from "../../../services/apiClient";
+import { matchesSearch } from "../../../utils";
 
 interface RecordPaymentModalProps {
   isOpen: boolean;
@@ -45,6 +46,9 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
   const [initialPaymentState, setInitialPaymentState] = useState<Record<string, boolean>>({});
   const [initialPaidAtState, setInitialPaidAtState] = useState<Record<string, string>>({});
 
+  // Quick Search Filter state
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [isLoadingSheet, setIsLoadingSheet] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,7 +56,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [partialError, setPartialError] = useState<string | null>(null);
 
-  // Fetch active students on modal open
+  // Fetch active students (Master List) on modal open
   useEffect(() => {
     if (!isOpen || !groupId) return;
 
@@ -60,6 +64,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     setIsLoadingStudents(true);
     setError(null);
     setPartialError(null);
+    setSearchTerm("");
     setMonth(getCurrentMonthFormatted());
 
     const fetchStudents = async () => {
@@ -85,7 +90,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     };
   }, [isOpen, groupId]);
 
-  // Load existing payment sheet for selected month if it exists
+  // Load existing payment sheet for selected month & Frontend Merge with Master Student List
   useEffect(() => {
     if (!isOpen || !groupId || students.length === 0) return;
 
@@ -117,6 +122,8 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
             };
           });
 
+          // Frontend Merge Logic: Map over master student list
+          // Late joiners (not in existing sheet) default to unpaid so teacher can charge them
           students.forEach((student) => {
             const rec = existingPaidMap[student._id];
             const isPaidVal = rec ? rec.isPaid : false;
@@ -153,6 +160,14 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     };
   }, [isOpen, groupId, month, students, existingPayments]);
 
+  // Quick Search Filter logic using matchesSearch (Arabic normalized)
+  const filteredStudents = useMemo<User[]>(() => {
+    if (!searchTerm.trim()) return students;
+    return students.filter((s) =>
+      matchesSearch(searchTerm, s.name, s.phone, s.parentPhone)
+    );
+  }, [students, searchTerm]);
+
   if (!isOpen) return null;
 
   const handleToggle = (studentId: string, isPaid: boolean) => {
@@ -179,14 +194,19 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     const updated: Record<string, boolean> = {};
     const updatedDates: Record<string, string> = {};
     const todayDate = getTodayFormattedDate();
+    const targetList = searchTerm.trim() ? filteredStudents : students;
 
-    students.forEach((student) => {
+    targetList.forEach((student) => {
       updated[student._id] = isPaid;
-      updatedDates[student._id] = isPaid ? (paidAtState[student._id] && paidAtState[student._id] !== "-" ? paidAtState[student._id] : todayDate) : "-";
+      updatedDates[student._id] = isPaid
+        ? paidAtState[student._id] && paidAtState[student._id] !== "-"
+          ? paidAtState[student._id]
+          : todayDate
+        : "-";
     });
 
-    setPaymentState(updated);
-    setPaidAtState(updatedDates);
+    setPaymentState((prev) => ({ ...prev, ...updated }));
+    setPaidAtState((prev) => ({ ...prev, ...updatedDates }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -221,7 +241,11 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
 
     const promises = changedStudents.map(async (student) => {
       const isPaid = paymentState[student._id] ?? false;
-      const paidAt = isPaid ? (paidAtState[student._id] && paidAtState[student._id] !== "-" ? paidAtState[student._id] : todayDate) : "-";
+      const paidAt = isPaid
+        ? paidAtState[student._id] && paidAtState[student._id] !== "-"
+          ? paidAtState[student._id]
+          : todayDate
+        : "-";
 
       const payload: RecordPaymentPayload = {
         studentID: student._id,
@@ -331,9 +355,45 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
             />
           </div>
 
+          {/* Quick Search Filter */}
+          {!isLoadingStudents && students.length > 0 && (
+            <div className="relative w-full">
+              <svg
+                className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="ابحث باسم الطالب أو رقم الهاتف..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pr-10 pl-8 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:bg-white focus:border-[#4F8A70] focus:ring-2 focus:ring-[#4F8A70]/20 transition-all"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                  title="مسح البحث"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Quick Actions & Status Summary */}
           {!isLoadingStudents && students.length > 0 && (
-            <div className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-2xl p-3">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 border border-slate-200/80 rounded-2xl p-3">
               <div className="flex items-center gap-2">
                 <span className="bg-emerald-100 text-emerald-800 text-[11px] font-extrabold px-2.5 py-1 rounded-lg">
                   مدفوع: {paidCount}
@@ -341,16 +401,19 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                 <span className="bg-rose-100 text-rose-800 text-[11px] font-extrabold px-2.5 py-1 rounded-lg">
                   غير مدفوع: {unpaidCount}
                 </span>
+                <span className="text-[11px] font-bold text-slate-500 mr-1">
+                  ({filteredStudents.length} / {students.length})
+                </span>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
                 <button
                   type="button"
                   disabled={isSubmitting || isLoadingSheet}
                   onClick={() => handleSetAll(true)}
                   className="text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                 >
-                  تحديد الكل مدفوع
+                  تحديد المعروض مدفوع
                 </button>
                 <span className="text-slate-300">|</span>
                 <button
@@ -359,7 +422,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                   onClick={() => handleSetAll(false)}
                   className="text-[11px] font-bold text-rose-700 hover:bg-rose-100 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                 >
-                  تحديد الكل غير مدفوع
+                  تحديد المعروض غير مدفوع
                 </button>
               </div>
             </div>
@@ -372,16 +435,20 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                 <div key={idx} className="h-12 bg-slate-100 rounded-2xl animate-pulse w-full"></div>
               ))}
             </div>
-          ) : students.length === 0 ? (
+          ) : filteredStudents.length === 0 ? (
             <div className="p-8 border border-slate-200 border-dashed rounded-2xl text-center">
-              <p className="text-xs font-extrabold text-slate-600">لا يوجد طلاب في هذه المجموعة</p>
-              <p className="text-[11px] font-medium text-slate-400 mt-1">
-                قم بإضافة طلاب للمجموعة أولاً لتتسنى لك إمكانية تسديد المبالغ المالية.
+              <p className="text-xs font-extrabold text-slate-600">
+                {searchTerm ? "لا يوجد طلاب مطابقين للبحث" : "لا يوجد طلاب في هذه المجموعة"}
               </p>
+              {!searchTerm && (
+                <p className="text-[11px] font-medium text-slate-400 mt-1">
+                  قم بإضافة طلاب للمجموعة أولاً لتتسنى لك إمكانية تسديد المبالغ المالية.
+                </p>
+              )}
             </div>
           ) : (
             <div className="max-h-64 overflow-y-auto space-y-2 pr-1 pl-1 scrollbar-thin">
-              {students.map((student, idx) => (
+              {filteredStudents.map((student, idx) => (
                 <PaymentStudentRow
                   key={student._id}
                   student={student}

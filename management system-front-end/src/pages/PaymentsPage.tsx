@@ -214,6 +214,7 @@ export const PaymentsPage: React.FC = () => {
       <PaymentDetailsModal
         isOpen={Boolean(selectedPaymentId)}
         paymentId={selectedPaymentId}
+        groupId={groupId}
         onClose={() => setSelectedPaymentId(null)}
       />
     </div>

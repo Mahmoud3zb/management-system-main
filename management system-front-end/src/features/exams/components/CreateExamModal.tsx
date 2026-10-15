@@ -4,6 +4,7 @@ import { createExamApi } from "../api";
 import { ExamStudentMarkRow } from "./ExamStudentMarkRow";
 import type { User, CreateExamPayload } from "../../../types";
 import type { ApiErrorResponse } from "../../../services/apiClient";
+import { matchesSearch } from "../../../utils";
 
 interface CreateExamModalProps {
   isOpen: boolean;
@@ -83,15 +84,11 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({
     };
   }, [isOpen, groupId]);
 
-  // Quick Search Filter logic
+  // Quick Search Filter logic using matchesSearch (Arabic normalized)
   const filteredStudents = useMemo<User[]>(() => {
     if (!searchTerm.trim()) return students;
-    const term = searchTerm.trim().toLowerCase();
-    return students.filter(
-      (s) =>
-        s.name.toLowerCase().includes(term) ||
-        (s.phone && s.phone.includes(term)) ||
-        (s.parentPhone && s.parentPhone.includes(term))
+    return students.filter((s) =>
+      matchesSearch(searchTerm, s.name, s.phone, s.parentPhone)
     );
   }, [students, searchTerm]);
 
@@ -297,7 +294,7 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({
               {/* Quick Search Input */}
               <div className="relative w-full sm:w-64">
                 <svg
-                  className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2"
+                  className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -313,9 +310,19 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="ابحث باسم الطالب..."
-                  className="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#e1b54d] focus:ring-2 focus:ring-[#e1b54d]/20 transition-all"
+                  placeholder="ابحث باسم الطالب أو رقم الهاتف..."
+                  className="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-7 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#e1b54d] focus:ring-2 focus:ring-[#e1b54d]/20 transition-all"
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm("")}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                    title="مسح البحث"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">

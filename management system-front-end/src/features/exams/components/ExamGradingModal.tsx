@@ -4,6 +4,7 @@ import { updateStudentMarkApi } from "../api";
 import { ExamStudentMarkRow } from "./ExamStudentMarkRow";
 import type { User, Exam } from "../../../types";
 import type { ApiErrorResponse } from "../../../services/apiClient";
+import { matchesSearch } from "../../../utils";
 
 interface ExamGradingModalProps {
   isOpen: boolean;
@@ -35,8 +36,10 @@ export const ExamGradingModal: React.FC<ExamGradingModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  // Master list of all current group students
+  // Master list of all students to grade (current active + historical in exam)
   const [students, setStudents] = useState<User[]>([]);
+  // Set of current active student IDs to distinguish historical students
+  const [activeStudentIds, setActiveStudentIds] = useState<Set<string>>(new Set());
   // Marks map key: studentId, value: raw mark input string
   const [marksMap, setMarksMap] = useState<Record<string, string>>({});
   // Track initial marks to detect changes and avoid unnecessary API calls
@@ -63,31 +66,55 @@ export const ExamGradingModal: React.FC<ExamGradingModalProps> = ({
     setError(null);
     setSearchTerm("");
 
-    // Build map of existing recorded exam marks
+    // Build map of existing recorded exam marks and student info
     const existingMarksMap: Record<string, string> = {};
+    const existingStudentObjMap: Record<string, User> = {};
     if (exam.results && Array.isArray(exam.results)) {
       exam.results.forEach((res) => {
         const sId = getEntityId(res.studentID);
         if (sId) {
           existingMarksMap[sId] = String(res.marks ?? "");
+          if (typeof res.studentID === "object" && res.studentID !== null) {
+            existingStudentObjMap[sId] = res.studentID as User;
+          }
         }
       });
     }
 
     const fetchStudentsAndMerge = async () => {
       try {
-        // Fix 1: Fetch master list of all current group students from GET /api/group/:id/students
+        // Fetch list of current active group students
         const response = await getGroupStudentsApi(groupId);
         if (!isMounted) return;
 
         const masterStudentsList = response.data || [];
-        setStudents(masterStudentsList);
+        const currentIds = new Set<string>(masterStudentsList.map((s) => s._id));
+        setActiveStudentIds(currentIds);
 
-        // Merge logic: Map over master list to ensure late joiners are included
+        // 1. Current active students in group
+        const allStudentsToGrade: User[] = [...masterStudentsList];
+
+        // 2. Preserve historical students in exam.results who are no longer in active roster
+        if (exam.results && Array.isArray(exam.results)) {
+          exam.results.forEach((res) => {
+            const sId = getEntityId(res.studentID);
+            if (sId && !currentIds.has(sId)) {
+              currentIds.add(sId);
+              const historicalStudent: User = existingStudentObjMap[sId] || ({
+                _id: sId,
+                name: (res as any).studentName || "طالب غير مسجل حالياً",
+                phone: (res as any).studentPhone || "-",
+              } as User);
+              allStudentsToGrade.push(historicalStudent);
+            }
+          });
+        }
+
+        setStudents(allStudentsToGrade);
+
+        // Pre-fill existing marks (including 0); late joiners receive empty string ""
         const mergedMarks: Record<string, string> = {};
-        masterStudentsList.forEach((s) => {
-          // If student has a recorded mark in exam snapshot, pre-fill it.
-          // If late joiner (not in snapshot), display empty string input.
+        allStudentsToGrade.forEach((s) => {
           mergedMarks[s._id] = existingMarksMap[s._id] !== undefined ? existingMarksMap[s._id] : "";
         });
 
@@ -110,15 +137,11 @@ export const ExamGradingModal: React.FC<ExamGradingModalProps> = ({
     };
   }, [isOpen, groupId, exam]);
 
-  // Fix 2: Quick Search Filter logic using useMemo
+  // Quick Search Filter logic using matchesSearch (with Arabic normalization)
   const filteredStudents = useMemo<User[]>(() => {
     if (!searchTerm.trim()) return students;
-    const term = searchTerm.trim().toLowerCase();
-    return students.filter(
-      (s) =>
-        s.name.toLowerCase().includes(term) ||
-        (s.phone && s.phone.includes(term)) ||
-        (s.parentPhone && s.parentPhone.includes(term))
+    return students.filter((s) =>
+      matchesSearch(searchTerm, s.name, s.phone, s.parentPhone)
     );
   }, [students, searchTerm]);
 
@@ -326,17 +349,25 @@ export const ExamGradingModal: React.FC<ExamGradingModalProps> = ({
             </div>
           ) : (
             <div className="max-h-72 overflow-y-auto space-y-2 pr-1 pl-1 scrollbar-thin">
-              {filteredStudents.map((student, idx) => (
-                <ExamStudentMarkRow
-                  key={student._id}
-                  student={student}
-                  index={idx}
-                  markValue={marksMap[student._id] ?? ""}
-                  maxMarks={maxMarks}
-                  disabled={isSubmitting}
-                  onMarkChange={handleMarkChange}
-                />
-              ))}
+              {filteredStudents.map((student, idx) => {
+                const isLateJoiner = !exam.results?.some(
+                  (r) => getEntityId(r.studentID) === student._id
+                );
+                const isHistorical = !activeStudentIds.has(student._id);
+                return (
+                  <ExamStudentMarkRow
+                    key={student._id}
+                    student={student}
+                    index={idx}
+                    markValue={marksMap[student._id] ?? ""}
+                    maxMarks={maxMarks}
+                    disabled={isSubmitting}
+                    isLateJoiner={isLateJoiner}
+                    isHistorical={isHistorical}
+                    onMarkChange={handleMarkChange}
+                  />
+                );
+              })}
             </div>
           )}
 

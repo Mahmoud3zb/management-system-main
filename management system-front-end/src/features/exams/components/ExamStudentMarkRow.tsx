@@ -7,6 +7,8 @@ interface ExamStudentMarkRowProps {
   markValue: string;
   maxMarks: number;
   disabled: boolean;
+  isLateJoiner?: boolean;
+  isHistorical?: boolean;
   onMarkChange: (studentId: string, value: string) => void;
 }
 
@@ -16,6 +18,8 @@ export const ExamStudentMarkRow: React.FC<ExamStudentMarkRowProps> = ({
   markValue,
   maxMarks,
   disabled,
+  isLateJoiner = false,
+  isHistorical = false,
   onMarkChange,
 }) => {
   const numMark = parseFloat(markValue);
@@ -36,8 +40,20 @@ export const ExamStudentMarkRow: React.FC<ExamStudentMarkRowProps> = ({
           {index + 1}
         </span>
         <div className="min-w-0">
-          <div className="font-extrabold text-slate-900 text-xs sm:text-sm truncate">
-            {student.name}
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold text-slate-900 text-xs sm:text-sm truncate">
+              {student.name}
+            </span>
+            {isLateJoiner && (
+              <span className="bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
+                منضم حديثاً
+              </span>
+            )}
+            {isHistorical && (
+              <span className="bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" title="طالب مسجل بالامتحان وغير مدرج بالقائمة الحالية للمجموعة">
+                سجل سابق
+              </span>
+            )}
           </div>
           <div className="text-[11px] font-mono text-slate-400 dir-ltr text-right">
             {student.phone || "-"}

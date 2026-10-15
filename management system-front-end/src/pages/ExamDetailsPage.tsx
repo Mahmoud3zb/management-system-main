@@ -9,6 +9,7 @@ import {
   EditExamModal,
   EditStudentMarkModal,
   ArchiveExamModal,
+  ExamGradingModal,
   type StudentMarkItemTarget,
 } from "../features/exams/components";
 import { ROUTES } from "../routes/paths";
@@ -27,6 +28,7 @@ export const ExamDetailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Modals state
+  const [isGradingModalOpen, setIsGradingModalOpen] = useState(false);
   const [isEditExamModalOpen, setIsEditExamModalOpen] = useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
@@ -102,20 +104,92 @@ export const ExamDetailsPage: React.FC = () => {
         studentMap[s._id] = s;
       });
 
-      const enrichedResults = (examObj.results || []).map((r) => {
-        if (typeof r.studentID === "string") {
-          const matchedStudent = studentMap[r.studentID];
-          return {
-            ...r,
-            studentID: matchedStudent || {
-              _id: r.studentID,
-              name: "طالب غير معروف",
-              phone: "-",
-            },
-          };
+      // Build map of existing recorded exam marks
+      const existingExamResultsMap: Record<string, any> = {};
+      (examObj.results || []).forEach((r) => {
+        const sId =
+          typeof r.studentID === "string"
+            ? r.studentID
+            : r.studentID?._id
+            ? r.studentID._id
+            : String(r.studentID);
+        if (sId) {
+          existingExamResultsMap[sId] = r;
         }
-        return r;
       });
+
+      // Frontend Merge Logic with Historical Records Preservation:
+      let enrichedResults: any[] = [];
+      const currentStudentIds = new Set<string>();
+
+      if (studentsList.length > 0) {
+        // 1. Current active students in group roster
+        studentsList.forEach((student) => {
+          currentStudentIds.add(student._id);
+          const recorded = existingExamResultsMap[student._id];
+          if (recorded) {
+            enrichedResults.push({
+              ...recorded,
+              studentID: student,
+              isLateJoiner: false,
+              isHistorical: false,
+            });
+          } else {
+            enrichedResults.push({
+              studentID: student,
+              marks: 0,
+              isLateJoiner: true,
+              isUnrecorded: true,
+              isHistorical: false,
+            });
+          }
+        });
+
+        // 2. Preserve historical students in exam results who are no longer in active roster
+        (examObj.results || []).forEach((r) => {
+          const sId =
+            typeof r.studentID === "string"
+              ? r.studentID
+              : r.studentID?._id
+              ? r.studentID._id
+              : String(r.studentID);
+          if (sId && !currentStudentIds.has(sId)) {
+            currentStudentIds.add(sId);
+            const studentObj =
+              typeof r.studentID === "object" && r.studentID !== null
+                ? (r.studentID as User)
+                : ({
+                    _id: sId,
+                    name: (r as any).studentName || "طالب غير مسجل حالياً",
+                    phone: (r as any).studentPhone || "-",
+                  } as User);
+            enrichedResults.push({
+              ...r,
+              studentID: studentObj,
+              isLateJoiner: false,
+              isHistorical: true,
+              isUnrecorded: false,
+            });
+          }
+        });
+      } else {
+        enrichedResults = (examObj.results || []).map((r) => {
+          if (typeof r.studentID === "string") {
+            const matchedStudent = studentMap[r.studentID];
+            return {
+              ...r,
+              studentID: matchedStudent || {
+                _id: r.studentID,
+                name: "طالب غير معروف",
+                phone: "-",
+              },
+              isLateJoiner: false,
+              isHistorical: false,
+            };
+          }
+          return { ...r, isLateJoiner: false, isHistorical: false };
+        });
+      }
 
       const finalExam: Exam = {
         ...examObj,
@@ -245,10 +319,11 @@ export const ExamDetailsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Header with edit & archive buttons */}
+      {/* Header with edit, grading & archive buttons */}
       <ExamDetailsHeader
         exam={exam}
         groupIdParam={groupIdParam}
+        onOpenGradingModal={() => setIsGradingModalOpen(true)}
         onOpenEditModal={() => setIsEditExamModalOpen(true)}
         onOpenArchiveModal={() => setIsArchiveModalOpen(true)}
       />
@@ -263,6 +338,21 @@ export const ExamDetailsPage: React.FC = () => {
       />
 
       {/* Modals */}
+      <ExamGradingModal
+        isOpen={isGradingModalOpen}
+        exam={exam}
+        groupId={
+          groupIdParam ||
+          (typeof exam.groupID === "object" ? (exam.groupID as Group)._id : exam.groupID)
+        }
+        groupName={typeof exam.groupID === "object" ? (exam.groupID as Group).name : undefined}
+        onClose={() => setIsGradingModalOpen(false)}
+        onSuccess={(msg) => {
+          triggerToast(msg);
+          fetchExamDetails();
+        }}
+      />
+
       <EditExamModal
         isOpen={isEditExamModalOpen}
         exam={exam}

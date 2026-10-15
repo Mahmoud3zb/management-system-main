@@ -8,6 +8,7 @@ interface ExamDetailsHeaderProps {
   groupIdParam: string | null;
   onOpenEditModal?: () => void;
   onOpenArchiveModal?: () => void;
+  onOpenGradingModal?: () => void;
 }
 
 const LEVEL_LABELS: Record<AcademicLevel, string> = {
@@ -44,6 +45,7 @@ export const ExamDetailsHeader: React.FC<ExamDetailsHeaderProps> = ({
   groupIdParam,
   onOpenEditModal,
   onOpenArchiveModal,
+  onOpenGradingModal,
 }) => {
   const navigate = useNavigate();
 
@@ -113,13 +115,25 @@ export const ExamDetailsHeader: React.FC<ExamDetailsHeaderProps> = ({
         <div className="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
           {!exam.isDeleted && (
             <div className="flex items-center gap-2">
+              {onOpenGradingModal && (
+                <button
+                  onClick={onOpenGradingModal}
+                  className="bg-[#e1b54d] hover:bg-[#cca341] text-white font-extrabold px-4 py-2.5 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-sm shadow-[#e1b54d]/20"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span>رصد وتعديل الدرجات</span>
+                </button>
+              )}
+
               {onOpenEditModal && (
                 <button
                   onClick={onOpenEditModal}
                   className="bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 font-extrabold px-4 py-2.5 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
                 >
                   <svg className="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                   <span>تعديل الامتحان</span>
                 </button>
