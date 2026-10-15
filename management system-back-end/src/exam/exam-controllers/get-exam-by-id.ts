@@ -13,7 +13,10 @@ export const getExamById:RequestHandler <{id:string}>= async (req, res) => {
                 message: "Invalid exam ID"
             });
         }
-        const exam = await Exam.find({_id: id, isDeleted: false}).lean().exec();
+        const exam = await Exam.find({_id: id, isDeleted: false})
+            .populate("results.studentID", "name phone parentPhone")
+            .lean()
+            .exec();
         if(!exam){
             return res.status(StatusCodes.NOT_FOUND).json({
                 message: "Exam not found"
