@@ -1,6 +1,7 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { getStudentId, isPaymentRecordPaid } from "../../payments";
-import type { User, AttendanceSheet, Payment } from "../../../types";
+import type { User, AttendanceSheet, Payment, Exam } from "../../../types";
 
 interface StudentTableProps {
   students: User[];
@@ -8,7 +9,9 @@ interface StudentTableProps {
   searchQuery: string;
   attendanceSheets?: AttendanceSheet[];
   paymentSheets?: Payment[];
-  viewMode?: "attendance" | "payments";
+  examSheets?: Exam[];
+  viewMode?: "attendance" | "payments" | "exams";
+  groupId?: string;
   onEdit: (student: User) => void;
   onDelete: (student: User) => void;
   onOpenAddModal: () => void;
@@ -58,11 +61,15 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   searchQuery,
   attendanceSheets = [],
   paymentSheets = [],
+  examSheets = [],
   viewMode = "attendance",
+  groupId,
   onEdit,
   onDelete,
   onOpenAddModal,
 }) => {
+  const navigate = useNavigate();
+
   if (isLoading) {
     return (
       <div className="bg-white border border-slate-200 rounded-3xl p-8 animate-pulse space-y-3">
@@ -108,6 +115,9 @@ export const StudentTable: React.FC<StudentTableProps> = ({
   // Payment Sheets (Sorted chronologically oldest to newest)
   const sortedPaymentSheets = [...paymentSheets].sort((a, b) => a.month.localeCompare(b.month));
 
+  // Exam Sheets (Sorted chronologically oldest to newest)
+  const sortedExamSheets = [...examSheets].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+
   return (
     <div className="bg-white border border-slate-200/90 rounded-3xl overflow-hidden shadow-xs" dir="rtl">
       {/* Zero State Banners */}
@@ -126,6 +136,15 @@ export const StudentTable: React.FC<StudentTableProps> = ({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span>لم يتم تسجيل أي مدفوعات لهذه المجموعة حتى الآن</span>
+        </div>
+      )}
+
+      {viewMode === "exams" && sortedExamSheets.length === 0 && (
+        <div className="bg-slate-50 border-b border-slate-100 px-5 py-2.5 text-slate-400 text-[11px] font-bold flex items-center gap-2">
+          <svg className="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>لم يتم تسجيل أي امتحانات لهذه المجموعة حتى الآن</span>
         </div>
       )}
 
@@ -168,6 +187,25 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                   </th>
                 ))}
 
+              {/* Exams Columns */}
+              {viewMode === "exams" &&
+                sortedExamSheets.map((sheet) => (
+                  <th
+                    key={sheet._id}
+                    className="py-3 px-2 text-center min-w-[100px] border-l border-slate-100/60"
+                    title={`امتحان: ${sheet.title} | التاريخ: ${sheet.date} | النهاية العظمى: ${sheet.maxMarks} د (اضغط لفتح تفاصيل الامتحان)`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/exams/${sheet._id}${groupId ? `?groupId=${groupId}` : ""}`)}
+                      className="bg-amber-50 hover:bg-amber-100/80 border border-amber-200/80 px-2 py-1 rounded-xl text-[11px] font-extrabold text-amber-900 inline-flex flex-col items-center gap-0.5 transition-all cursor-pointer max-w-[125px] w-full"
+                    >
+                      <span className="truncate w-full block text-right font-black">{sheet.title}</span>
+                      <span className="text-[10px] text-amber-700/80 font-bold dir-ltr">({sheet.maxMarks} د)</span>
+                    </button>
+                  </th>
+                ))}
+
               {/* Summary Column */}
               {viewMode === "attendance" && displayedAttendanceSheets.length > 0 && (
                 <th className="py-3.5 px-3 text-center min-w-[90px] border-l border-slate-100/60 text-slate-600 font-bold">
@@ -178,6 +216,12 @@ export const StudentTable: React.FC<StudentTableProps> = ({
               {viewMode === "payments" && sortedPaymentSheets.length > 0 && (
                 <th className="py-3.5 px-3 text-center min-w-[110px] border-l border-slate-100/60 text-slate-600 font-bold">
                   ملخص المدفوعات
+                </th>
+              )}
+
+              {viewMode === "exams" && sortedExamSheets.length > 0 && (
+                <th className="py-3.5 px-3 text-center min-w-[130px] border-l border-slate-100/60 text-slate-600 font-bold">
+                  ملخص الامتحانات
                 </th>
               )}
 
@@ -224,6 +268,28 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                     const isRecPaid = isPaymentRecordPaid(rec);
                     if (isRecPaid) studentPaidMonthsCount++;
                     else studentUnpaidMonthsCount++;
+                  }
+                });
+              }
+
+              // Exams Calculations
+              let studentAttendedExamsCount = 0;
+              let studentTotalMarks = 0;
+              let studentTotalMaxMarks = 0;
+              let hasExamRecords = false;
+
+              if (viewMode === "exams") {
+                sortedExamSheets.forEach((sheet) => {
+                  const rec = (sheet.results || []).find((r) => {
+                    const sId = getStudentId(r.studentID);
+                    return sId === student._id;
+                  });
+
+                  if (rec !== undefined && rec.marks !== undefined && rec.marks !== null) {
+                    hasExamRecords = true;
+                    studentAttendedExamsCount++;
+                    studentTotalMarks += rec.marks;
+                    studentTotalMaxMarks += (sheet.maxMarks || 0);
                   }
                 });
               }
@@ -293,6 +359,43 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                       );
                     })}
 
+                  {/* Exams Cells */}
+                  {viewMode === "exams" &&
+                    sortedExamSheets.map((sheet) => {
+                      const record = (sheet.results || []).find((r) => {
+                        const sId = getStudentId(r.studentID);
+                        return sId === student._id;
+                      });
+
+                      if (!record || record.marks === undefined || record.marks === null) {
+                        return (
+                          <td key={sheet._id} className="py-3.5 px-2 text-center border-l border-slate-100/60">
+                            <span className="text-slate-300 font-bold text-xs" title="لم يتم رصد درجة">—</span>
+                          </td>
+                        );
+                      }
+
+                      const marks = record.marks;
+                      const max = sheet.maxMarks || 0;
+                      const pct = max > 0 ? (marks / max) * 100 : 0;
+
+                      let badgeClass = "bg-rose-50 text-rose-800 border-rose-200";
+                      if (pct >= 85) badgeClass = "bg-emerald-50 text-emerald-800 border-emerald-200";
+                      else if (pct >= 75) badgeClass = "bg-blue-50 text-blue-800 border-blue-200";
+                      else if (pct >= 50) badgeClass = "bg-amber-50 text-amber-800 border-amber-200";
+
+                      return (
+                        <td key={sheet._id} className="py-3.5 px-2 text-center border-l border-slate-100/60">
+                          <span
+                            className={`border px-2 py-0.5 rounded-lg text-[11px] font-black inline-block ${badgeClass}`}
+                            title={`الدرجة: ${marks} من ${max} (${pct.toFixed(1)}%)`}
+                          >
+                            {marks} <span className="font-normal text-[10px] opacity-75">/ {max}</span>
+                          </span>
+                        </td>
+                      );
+                    })}
+
                   {/* Attendance Summary */}
                   {viewMode === "attendance" && displayedAttendanceSheets.length > 0 && (
                     <td className="py-3.5 px-2 text-center border-l border-slate-100/60">
@@ -316,6 +419,24 @@ export const StudentTable: React.FC<StudentTableProps> = ({
                           <span className="text-emerald-700">مدفوع {studentPaidMonthsCount}</span>
                           <span className="text-slate-300">|</span>
                           <span className="text-rose-600">غير مدفوع {studentUnpaidMonthsCount}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-300 font-bold text-xs">—</span>
+                      )}
+                    </td>
+                  )}
+
+                  {/* Exams Summary */}
+                  {viewMode === "exams" && sortedExamSheets.length > 0 && (
+                    <td className="py-3.5 px-2 text-center border-l border-slate-100/60">
+                      {hasExamRecords && studentTotalMaxMarks > 0 ? (
+                        <div className="inline-flex flex-col items-center gap-0.5 bg-slate-50 border border-slate-200 px-2 py-1 rounded-xl text-[11px] font-extrabold text-slate-700">
+                          <span className="text-amber-900 font-black">
+                            {studentTotalMarks} / {studentTotalMaxMarks} ({((studentTotalMarks / studentTotalMaxMarks) * 100).toFixed(0)}%)
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-bold">
+                            {studentAttendedExamsCount} من {sortedExamSheets.length} امتحان
+                          </span>
                         </div>
                       ) : (
                         <span className="text-slate-300 font-bold text-xs">—</span>

@@ -4,9 +4,10 @@ interface StudentControlBarProps {
   totalStudents: number;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  activeTab?: "attendance" | "payments";
-  onTabChange?: (tab: "attendance" | "payments") => void;
+  activeTab?: "attendance" | "payments" | "exams";
+  onTabChange?: (tab: "attendance" | "payments" | "exams") => void;
   onOpenRecordPaymentModal?: () => void;
+  onOpenCreateExamModal?: () => void;
 }
 
 export const StudentControlBar: React.FC<StudentControlBarProps> = ({
@@ -16,6 +17,7 @@ export const StudentControlBar: React.FC<StudentControlBarProps> = ({
   activeTab = "attendance",
   onTabChange,
   onOpenRecordPaymentModal,
+  onOpenCreateExamModal,
 }) => {
   return (
     <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4" dir="rtl">
@@ -48,6 +50,15 @@ export const StudentControlBar: React.FC<StudentControlBarProps> = ({
             >
               كشف المدفوعات
             </button>
+            <button
+              onClick={() => onTabChange("exams")}
+              className={`px-3 py-1 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${activeTab === "exams"
+                  ? "bg-white text-amber-700 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+                }`}
+            >
+              كشف الامتحانات
+            </button>
           </div>
         )}
       </div>
@@ -63,6 +74,18 @@ export const StudentControlBar: React.FC<StudentControlBarProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
             </svg>
             <span>تسجيل مدفوعات شهر</span>
+          </button>
+        )}
+
+        {activeTab === "exams" && onOpenCreateExamModal && (
+          <button
+            onClick={onOpenCreateExamModal}
+            className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs shadow-md shadow-amber-600/20 transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>إنشاء امتحان جديد</span>
           </button>
         )}
 

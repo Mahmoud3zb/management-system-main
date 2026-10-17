@@ -4,6 +4,7 @@ import { getGroupByIdApi, getGroupStudentsApi } from "../features/groups/api";
 import { addStudentToGroupApi, deleteStudentApi } from "../features/students/api";
 import { getGroupAttendanceApi } from "../features/attendance/api";
 import { getGroupPaymentsApi, getPaymentByIdApi } from "../features/payments/api";
+import { getGroupExamsApi } from "../features/exams/api";
 import {
   GroupHeaderCard,
   StudentControlBar,
@@ -13,8 +14,9 @@ import {
 } from "../features/students/components";
 import { TakeAttendanceModal } from "../features/attendance/components";
 import { RecordPaymentModal } from "../features/payments/components";
+import { CreateExamModal } from "../features/exams/components";
 import { ROUTES } from "../routes/paths";
-import type { Group, User, AttendanceSheet, Payment } from "../types";
+import type { Group, User, AttendanceSheet, Payment, Exam } from "../types";
 import type { ApiErrorResponse } from "../services/apiClient";
 
 export const GroupDetailsPage: React.FC = () => {
@@ -26,6 +28,7 @@ export const GroupDetailsPage: React.FC = () => {
   const [students, setStudents] = useState<User[]>([]);
   const [attendanceSheets, setAttendanceSheets] = useState<AttendanceSheet[]>([]);
   const [paymentSheets, setPaymentSheets] = useState<Payment[]>([]);
+  const [examSheets, setExamSheets] = useState<Exam[]>([]);
 
   const [isGroupLoading, setIsGroupLoading] = useState(true);
   const [isStudentsLoading, setIsStudentsLoading] = useState(true);
@@ -33,7 +36,7 @@ export const GroupDetailsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
 
-  const [activeTab, setActiveTab] = useState<"attendance" | "payments">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "payments" | "exams">("attendance");
 
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -54,6 +57,7 @@ export const GroupDetailsPage: React.FC = () => {
 
   const [isTakeAttendanceModalOpen, setIsTakeAttendanceModalOpen] = useState(false);
   const [isRecordPaymentModalOpen, setIsRecordPaymentModalOpen] = useState(false);
+  const [isCreateExamModalOpen, setIsCreateExamModalOpen] = useState(false);
 
   const fetchGroupDetails = async () => {
     if (!id) return;
@@ -121,12 +125,24 @@ export const GroupDetailsPage: React.FC = () => {
     }
   }, [id]);
 
+  const fetchExamSheets = useCallback(async () => {
+    if (!id) return;
+
+    try {
+      const response = await getGroupExamsApi(id, { limit: 50 });
+      setExamSheets(response.data || []);
+    } catch (err: any) {
+      console.error("Fetch group exams error:", err);
+    }
+  }, [id]);
+
   useEffect(() => {
     fetchGroupDetails();
     fetchStudents();
     fetchAttendanceSheets();
     fetchPaymentSheets();
-  }, [id, fetchPaymentSheets]);
+    fetchExamSheets();
+  }, [id, fetchPaymentSheets, fetchExamSheets]);
 
   const filteredStudents = useMemo(() => {
     if (!searchQuery.trim()) return students;
@@ -285,6 +301,7 @@ export const GroupDetailsPage: React.FC = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onOpenRecordPaymentModal={() => setIsRecordPaymentModalOpen(true)}
+        onOpenCreateExamModal={() => setIsCreateExamModalOpen(true)}
       />
 
 
@@ -294,6 +311,8 @@ export const GroupDetailsPage: React.FC = () => {
         searchQuery={searchQuery}
         attendanceSheets={attendanceSheets}
         paymentSheets={paymentSheets}
+        examSheets={examSheets}
+        groupId={id}
         viewMode={activeTab}
         onEdit={handleOpenEditModal}
         onDelete={setDeletingStudent}
@@ -350,6 +369,17 @@ export const GroupDetailsPage: React.FC = () => {
         onSuccess={(msg) => {
           showToast(msg);
           fetchPaymentSheets();
+        }}
+      />
+
+      <CreateExamModal
+        isOpen={isCreateExamModalOpen}
+        groupId={id || null}
+        groupName={group?.name || ""}
+        onClose={() => setIsCreateExamModalOpen(false)}
+        onSuccess={(msg) => {
+          showToast(msg);
+          fetchExamSheets();
         }}
       />
     </div>
