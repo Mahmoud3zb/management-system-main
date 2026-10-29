@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText } from "lucide-react";
+import { FileText, CreditCard } from "lucide-react";
 import { getGroupsApi, getGroupStudentsApi } from "../features/groups/api";
 import { ROUTES } from "../routes/paths";
 import type { AcademicLevel } from "../types";
@@ -139,13 +139,22 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto space-y-6 py-2 text-right" dir="rtl">
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-6 bg-amber-400 rounded-full"></span>
           <h2 className="text-xl font-extrabold text-[#367ab8] tracking-tight">
             الصفوف الدراسية
           </h2>
         </div>
+
+        <button
+          onClick={() => navigate(ROUTES.PAYMENTS_UNPAID)}
+          className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-extrabold px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+          title="عرض كشف الطلاب غير المسددين للمصروفات عبر جميع المجموعات"
+        >
+          <CreditCard className="w-4 h-4 text-rose-600" />
+          <span>كشف غير المسددين (جميع المجموعات)</span>
+        </button>
       </div>
 
       <div className="space-y-4">

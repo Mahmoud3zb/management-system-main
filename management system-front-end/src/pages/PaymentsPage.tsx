@@ -129,29 +129,41 @@ export const PaymentsPage: React.FC = () => {
   // Missing Group Guidance State
   if (!groupId) {
     return (
-      <div className="space-y-6 text-right" dir="rtl">
+      <div className="space-y-6 text-right max-w-4xl mx-auto" dir="rtl">
         <div className="bg-white border border-slate-200/90 rounded-3xl p-8 sm:p-12 text-center my-6 shadow-xs">
           <div className="w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto mb-4 text-[#4F8A70]">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <h2 className="text-lg font-black text-slate-900 mb-2">
-            عرض سجل المصاريف والمدفوعات الدراسية
+          <h2 className="text-xl font-black text-slate-900 mb-2">
+            سجل المصاريف والمدفوعات الدراسية
           </h2>
-          <p className="text-xs text-slate-500 font-medium max-w-md mx-auto mb-6 leading-relaxed">
-            يرجى اختيار مجموعة أولاً من قائمة المجموعات لعرض سجل المدفوعات وكشوفات الشهر الخاصة بها.
+          <p className="text-xs text-slate-500 font-medium max-w-md mx-auto mb-8 leading-relaxed">
+            يمكنك متابعة الطلاب المتأخرين عن السداد عبر كافة المجموعات مباشرة، أو اختيار مجموعة محددة لعرض كشوفاتها الشهرية.
           </p>
 
-          <button
-            onClick={() => navigate(ROUTES.GROUPS)}
-            className="bg-[#4F8A70] hover:bg-[#3f705b] text-white font-extrabold px-6 py-3 rounded-2xl text-xs shadow-md shadow-[#4F8A70]/20 transition-all cursor-pointer inline-flex items-center gap-2"
-          >
-            <span>الانتقال لقائمة المجموعات</span>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => navigate(ROUTES.PAYMENTS_UNPAID)}
+              className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-extrabold px-6 py-3.5 rounded-2xl text-xs shadow-md shadow-rose-600/20 transition-all cursor-pointer inline-flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>كشف الطلاب غير المسددين (جميع المجموعات)</span>
+            </button>
+
+            <button
+              onClick={() => navigate(ROUTES.GROUPS)}
+              className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold px-6 py-3.5 rounded-2xl text-xs transition-all cursor-pointer inline-flex items-center justify-center gap-2"
+            >
+              <span>اختيار مجموعة محددة</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     );
