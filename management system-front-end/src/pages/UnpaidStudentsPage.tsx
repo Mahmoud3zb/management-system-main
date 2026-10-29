@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Printer,
   Search,
   Users,
   RefreshCw,
@@ -164,10 +163,6 @@ export const UnpaidStudentsPage: React.FC = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
     <div className="space-y-6 pb-16 text-right max-w-7xl mx-auto px-2 sm:px-4" dir="rtl">
       {/* Toast Notification */}
@@ -218,14 +213,6 @@ export const UnpaidStudentsPage: React.FC = () => {
               <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
               <span className="hidden sm:inline">تحديث</span>
             </button>
-
-            {/* <button
-              onClick={handlePrint}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold px-4 py-2.5 rounded-2xl text-xs shadow-md shadow-slate-900/10 transition-all cursor-pointer flex items-center gap-2"
-            >
-              <Printer className="w-4 h-4" />
-              <span>طباعة الكشف</span>
-            </button> */}
 
             <button
               onClick={() => navigate(ROUTES.PAYMENTS)}
