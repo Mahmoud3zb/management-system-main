@@ -18,6 +18,19 @@ export interface UnpaidStudentItem {
   statusText: string;
 }
 
+export interface PaidStudentItem {
+  id: string; // unique key: `${groupId}_${studentId}_${month}`
+  studentId: string;
+  studentName: string;
+  studentPhone: string;
+  parentPhone: string;
+  groupId: string;
+  groupName: string;
+  groupLevel: AcademicLevel | string;
+  month: string;
+  paidAt?: string;
+}
+
 export interface GroupUnpaidBundle {
   group: Group;
   students: User[];
@@ -199,4 +212,66 @@ export const filterUnpaidStudents = (
   });
 
   return unpaidItems;
+};
+
+/**
+ * Filters the aggregated bundles to find paid students for a selected month (or all months).
+ */
+export const filterPaidStudents = (
+  bundles: GroupUnpaidBundle[],
+  selectedMonth: string
+): PaidStudentItem[] => {
+  const paidItems: PaidStudentItem[] = [];
+
+  bundles.forEach(({ group, students, sheets }) => {
+    const groupId = group._id;
+    const groupName = group.name;
+    const groupLevel = group.level;
+
+    if (students.length === 0) return;
+
+    // Student map for fast lookup
+    const studentMap = new Map<string, User>();
+    students.forEach((s) => studentMap.set(s._id, s));
+
+    const targetSheets =
+      selectedMonth === "all"
+        ? sheets
+        : sheets.filter((s) => s.month === selectedMonth);
+
+    targetSheets.forEach((sheet) => {
+      const month = sheet.month;
+      const paidList = sheet.paidList || [];
+
+      paidList.forEach((p) => {
+        const sId = getStudentId(p.studentID);
+        if (!sId) return;
+
+        const isPaid = isPaymentRecordPaid(p);
+        if (isPaid) {
+          const studentObj =
+            studentMap.get(sId) ||
+            (typeof p.studentID === "object" ? (p.studentID as User) : null);
+          const studentName = studentObj ? studentObj.name : "طالب مسجل";
+          const studentPhone = studentObj ? studentObj.phone || "-" : "-";
+          const parentPhone = studentObj ? studentObj.parentPhone || "-" : "-";
+
+          paidItems.push({
+            id: `${groupId}_${sId}_${month}`,
+            studentId: sId,
+            studentName,
+            studentPhone,
+            parentPhone,
+            groupId,
+            groupName,
+            groupLevel,
+            month,
+            paidAt: p.paidAt && p.paidAt !== "-" ? p.paidAt : undefined,
+          });
+        }
+      });
+    });
+  });
+
+  return paidItems;
 };

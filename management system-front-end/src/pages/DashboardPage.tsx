@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, CreditCard } from "lucide-react";
+import { FileText, CreditCard, UserPlus, CheckCircle2 } from "lucide-react";
 import { getGroupsApi, getGroupStudentsApi } from "../features/groups/api";
+import { QuickAddStudentModal } from "../features/students/components";
 import { ROUTES } from "../routes/paths";
 import type { AcademicLevel } from "../types";
 
@@ -62,70 +63,70 @@ export const DashboardPage: React.FC = () => {
     },
   });
 
-  useEffect(() => {
-    let isMounted = true;
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-    const fetchLevelData = async () => {
-      const levels: AcademicLevel[] = ["prep_third", "first", "second", "third"];
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
-      const promises = levels.map(async (lvl) => {
-        try {
-          const groupsRes = await getGroupsApi({ level: lvl, limit: 100 });
-          const groupsList = groupsRes.data || [];
-          const groupsCount = groupsRes.total || groupsList.length;
+  const fetchLevelData = useCallback(async () => {
+    const levels: AcademicLevel[] = ["prep_third", "first", "second", "third"];
 
-          let studentsCount = 0;
-          if (groupsList.length > 0) {
-            const studentCounts = await Promise.allSettled(
-              groupsList.map((g) => getGroupStudentsApi(g._id))
-            );
+    const promises = levels.map(async (lvl) => {
+      try {
+        const groupsRes = await getGroupsApi({ level: lvl, limit: 100 });
+        const groupsList = groupsRes.data || [];
+        const groupsCount = groupsRes.total || groupsList.length;
 
-            studentsCount = studentCounts.reduce((sum, res) => {
-              if (res.status === "fulfilled" && Array.isArray(res.value.data)) {
-                return sum + res.value.data.length;
-              }
-              return sum;
-            }, 0);
-          }
+        let studentsCount = 0;
+        if (groupsList.length > 0) {
+          const studentCounts = await Promise.allSettled(
+            groupsList.map((g) => getGroupStudentsApi(g._id))
+          );
 
-          return {
-            level: lvl,
-            groupsCount,
-            studentsCount,
-          };
-        } catch (err) {
-          return {
-            level: lvl,
-            groupsCount: 0,
-            studentsCount: 0,
-          };
+          studentsCount = studentCounts.reduce((sum, res) => {
+            if (res.status === "fulfilled" && Array.isArray(res.value.data)) {
+              return sum + res.value.data.length;
+            }
+            return sum;
+          }, 0);
         }
+
+        return {
+          level: lvl,
+          groupsCount,
+          studentsCount,
+        };
+      } catch (err) {
+        return {
+          level: lvl,
+          groupsCount: 0,
+          studentsCount: 0,
+        };
+      }
+    });
+
+    const results = await Promise.all(promises);
+
+    setCardsData((prev) => {
+      const next = { ...prev };
+      results.forEach((res) => {
+        next[res.level] = {
+          ...next[res.level],
+          groupsCount: res.groupsCount,
+          studentsCount: res.studentsCount,
+          isLoading: false,
+        };
       });
-
-      const results = await Promise.all(promises);
-
-      if (!isMounted) return;
-
-      setCardsData((prev) => {
-        const next = { ...prev };
-        results.forEach((res) => {
-          next[res.level] = {
-            ...next[res.level],
-            groupsCount: res.groupsCount,
-            studentsCount: res.studentsCount,
-            isLoading: false,
-          };
-        });
-        return next;
-      });
-    };
-
-    fetchLevelData();
-
-    return () => {
-      isMounted = false;
-    };
+      return next;
+    });
   }, []);
+
+  useEffect(() => {
+    fetchLevelData();
+  }, [fetchLevelData]);
 
   const handleCardClick = (level: AcademicLevel) => {
     navigate(`${ROUTES.GROUPS}?level=${level}`);
@@ -138,25 +139,68 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 py-2 text-right" dir="rtl">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+      {/* Quick Actions Hub Card */}
+      <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#367ab8]"></span>
+            <span className="text-xs font-extrabold text-slate-700">إجراءات سريعة ومباشرة</span>
+          </div>
+          <span className="text-[11px] font-bold text-slate-400">لوحة التحكم الرئيسية</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          {/* 1. Quick Add Student */}
+          <button
+            onClick={() => setIsQuickAddOpen(true)}
+            className="bg-[#367ab8] hover:bg-[#2c6599] text-white font-extrabold p-3 rounded-2xl text-xs transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-95"
+            title="إضافة طالب جديد لأي مجموعة مباشرة"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>+ إضافة طالب جديد</span>
+          </button>
+
+          {/* 2. Unpaid Students Sheet */}
+          <button
+            onClick={() => navigate(`${ROUTES.PAYMENTS_UNPAID}?tab=unpaid`)}
+            className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-extrabold p-3 rounded-2xl text-xs transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs active:scale-95"
+            title="عرض كشف الطلاب غير المسددين للمصروفات عبر جميع المجموعات"
+          >
+            <CreditCard className="w-4 h-4 text-rose-600" />
+            <span>كشف غير المسددين</span>
+          </button>
+
+          {/* 3. Paid Students Sheet */}
+          <button
+            onClick={() => navigate(`${ROUTES.PAYMENTS_UNPAID}?tab=paid`)}
+            className="bg-emerald-50 hover:bg-emerald-100 text-[#4F8A70] border border-emerald-200 font-extrabold p-3 rounded-2xl text-xs transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs active:scale-95"
+            title="عرض كشف الطلاب المسددين للمصروفات عبر جميع المجموعات"
+          >
+            <CheckCircle2 className="w-4 h-4 text-[#4F8A70]" />
+            <span>كشف المسددين</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Academic Levels Header */}
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-6 bg-amber-400 rounded-full"></span>
           <h2 className="text-xl font-extrabold text-[#367ab8] tracking-tight">
             الصفوف الدراسية
           </h2>
         </div>
-
-        <button
-          onClick={() => navigate(ROUTES.PAYMENTS_UNPAID)}
-          className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-extrabold px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
-          title="عرض كشف الطلاب غير المسددين للمصروفات عبر جميع المجموعات"
-        >
-          <CreditCard className="w-4 h-4 text-rose-600" />
-          <span>كشف غير المسددين (جميع المجموعات)</span>
-        </button>
       </div>
 
+      {/* Academic Level Cards */}
       <div className="space-y-4">
         {(["prep_third", "first", "second", "third"] as AcademicLevel[]).map((levelKey) => {
           const item = cardsData[levelKey];
@@ -202,6 +246,16 @@ export const DashboardPage: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Quick Add Student Modal */}
+      <QuickAddStudentModal
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
+        onSuccess={(name, group) => {
+          showToast(`تمت إضافة الطالب (${name}) بنجاح إلى (${group})`);
+          fetchLevelData();
+        }}
+      />
     </div>
   );
 };
